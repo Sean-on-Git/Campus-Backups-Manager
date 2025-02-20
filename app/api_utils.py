@@ -12,10 +12,10 @@ def adjust_path(path):
     Adjusts slashes to the appropriate type for the current OS
 
     Args:
-        path (str): A filesystem path. Ex: '/home/user/Documents', 'C:\Users\me\Documents'
+        path (str): A filesystem path. Ex: '/home/user/Documents', 'C:\\Users\\me\\Documents'
 
     Returns:
-        str: With appropriate slashes. Ex: "../MyBackups/here" -> "..\MyBackups\her"
+        str: With appropriate slashes. Ex: "../MyBackups/here" -> "..\\MyBackups\\her"
     """
     if platform.system() == "Windows":
         return path.replace("/", "\\")

@@ -6,7 +6,7 @@ from textual.reactive import reactive
 from textual.events import Key
 import webbrowser
 import asyncio
-from api_utils import move_to_deletion_folder, scan_directory_for_tickets, fetch_ticket_info, BACKUPS_LOCATION, INSTANCE
+from api_utils import move_to_deletion_folder, scan_directory_for_tickets, fetch_ticket_info, BACKUPS_LOCATION, INSTANCE, DELETION_LOCATION
 
 class TicketApp(App):
     CSS_PATH = "style.tcss"
@@ -20,16 +20,18 @@ class TicketApp(App):
         Yields:
             Container: The main layout containers and widgets.
         """
-        self.bottom_row = Static("Ctrl+Q to quit | Enter to open ticket in browser | Tab and arrow keys to navigate", classes="bold")
         yield Header()
-        yield self.login_container()
-        yield DataTable(id="data_table")
+        login_container = self.login_container()
+        login_container.id = "login_container"
+        yield login_container
+
+        self.main_table = self.create_table("data_table", ["Ticket Number", "Size", "Closed At (Local)", "Closed By Username", "Ready for Pickup Tag", "Ready for Deletion"])
+        self.main_container = self.create_container("main_container", [self.main_table, Button("Move to Deletion", id="move_deletion"), Button("Empty Delete Folder", id="perm_delete")])
+        yield self.main_container
         yield ProgressBar(id="progress_bar")
 
-        self.deletion_table = DataTable(id="deletion_table")
-        self.deletion_table.add_columns("Ticket Number", "Closed At (Local)", "Closed By Username", "Ready for Pickup Tag", "Ready for Deletion")
+        self.deletion_table = self.create_table("deletion_table", ["Ticket Number", "Closed At (Local)", "Closed By Username", "Ready for Pickup Tag", "Ready for Deletion"])
         self.deletion_table.cursor_type = "row"
-        self.deletion_table.focus()
         self.deletion_confirmation_text = Static("Are you sure ALL of these folders are ready to be moved to the 'MARKED FOR DELETION' folder?")
         self.deletion_container = Container(
             self.deletion_table,
@@ -40,14 +42,45 @@ class TicketApp(App):
         self.deletion_container.id = "deletion_container"
         self.deletion_container.styles.display = "none" 
         yield self.deletion_container
+        
         login_error = Static("Incorrect Username or Password. Quit application and try again")
         login_error.id = "login_error"
         yield login_error
         
         self.title = 'HDCS Backup Management Utility'
 
-        yield self.bottom_row
-        yield Footer(self.bottom_row)
+        bottom_row = Static("Ctrl+Q to quit | Enter to open ticket in browser | Tab and arrow keys to navigate", classes="bold")
+        bottom_row.styles.text_align = "center"
+
+        yield self.create_container("test", [bottom_row])
+
+        # yield bottom_row
+        yield Footer()
+
+    def create_table(self, id, columns):
+        """
+        Creates data table widget
+
+        Args:
+            id (str): ID for new table
+            columns ([str]): List of columns for the new table
+        """
+        table = DataTable(id=id)
+        table.add_columns(*columns)
+        table.cursor_type = "row"
+        return table
+    
+    def create_container(self, id, widgets):
+        """
+        Create container widget to hold other widgets
+
+        Args:
+            id (str): #ID of container
+        """
+        container = Container(*widgets)
+        container.id = id
+
+        return container
 
     def login_container(self):
         """
@@ -87,16 +120,13 @@ class TicketApp(App):
         """
         Method called when the app is mounted. Initialize and display the main table and progress bar.
         """
-        self.bottom_row.styles.bold = True
-        self.table = self.query_one("#data_table")
-        self.table.add_columns("Ticket Number", "Size", "Closed At (Local)", "Closed By Username", "Ready for Pickup Tag", "Ready for Deletion")
-        self.table.cursor_type = "row"
-        self.table.focus()
-        self.query_one(Container).styles.display = "block"
-        self.query_one("#data_table").styles.display = "none"
-        self.query_one(ProgressBar).styles.display = "none"
-        self.query_one("#deletion_container").styles.display = "none"
-        self.query_one("#login_error").styles.display = "none"
+        #self.show("#data_table")
+        self.query_one("#username").focus()
+        self.show("#login_container")
+        self.hide("#main_container")
+        self.hide(ProgressBar)
+        self.hide("#deletion_container")
+        self.hide("#login_error")
 
     async def on_button_pressed(self, event):
         """
@@ -106,21 +136,32 @@ class TicketApp(App):
             event (Button.Pressed): The button pressed event.
         """
         if event.button.id == "login_button":
-            self.query_one(Container).styles.display = "none"
-            self.query_one(DataTable).styles.display = "none"
+            self.query_one("#login_container").styles.display = "none"
+            self.query_one("#main_container").styles.display = "none"
             self.query_one(ProgressBar).styles.display = "block"
             self.username = self.query_one("#username").value
             self.password = self.query_one("#password").value
-            await self.load_tickets(INSTANCE, self.username, self.password)
+            await self.load_tickets(INSTANCE, self.username, self.password, BACKUPS_LOCATION, self.main_table)
+            self.show("#main_container")
+            self.query_one("#data_table").focus()
         elif event.button.id == "no_button":
-            self.show("#data_table")
+            self.show("#main_container")
             self.hide("#deletion_container")
+            self.query_one("#data_table").focus()
         elif event.button.id == "yes_button":
             deletion_info_list = [info for info in self.ticket_info_list if info['ready_for_deletion']]
             ticket_numbers = [info['ticket_number'] for info in deletion_info_list]
             move_to_deletion_folder(ticket_numbers)
-            self.show("#data_table")
+            await self.load_tickets(INSTANCE, self.username, self.password, BACKUPS_LOCATION)
+            self.show("#main_container")
+            self.query_one("#data_table").focus()
             self.hide("#deletion_container")
+        elif event.button.id == "move_deletion":
+            self.query_one("#deletion_container").styles.display = "block"
+            self.query_one("#main_container").styles.display = "none"
+            self.show_deletion_confirmation()
+        elif event.button.id == "perm_delete":
+            await self.load_tickets(INSTANCE, self.username, self.password, DELETION_LOCATION)
 
     async def fetch_ticket_info_task(self, instance, username, password, ticket_number):
         """
@@ -139,7 +180,7 @@ class TicketApp(App):
                 self.call_later(self.update_progress)
         except Exception as e:
             self.show("#login_error")
-            self.hide("#data_table")
+            self.hide("#main_container")
             self.query_one("#login_error").styles.color = "red"
             print(f"Error fetching ticket info: {e}")
     
@@ -150,7 +191,7 @@ class TicketApp(App):
         progress = self.query_one(ProgressBar)
         progress.advance(1)
 
-    async def load_tickets(self, instance, username, password):
+    async def load_tickets(self, instance, username, password, directory, table):
         """
         Load ticket information for all tickets in the backups location.
 
@@ -158,8 +199,10 @@ class TicketApp(App):
             instance (str): ServiceNow instance.
             username (str): Username for authentication.
             password (str): Password for authentication.
+            directory (str): Directory of backup folders.
+            table (DataTable): DataTable widget to populate with data.
         """
-        ticket_numbers = scan_directory_for_tickets(BACKUPS_LOCATION)
+        ticket_numbers = scan_directory_for_tickets(directory)
         self.ticket_info_list = []
         total_tickets = len(ticket_numbers)
         progress = self.query_one(ProgressBar)
@@ -170,18 +213,18 @@ class TicketApp(App):
             task = asyncio.create_task(self.fetch_ticket_info_task(instance, username, password, ticket_number))
             tasks.append(task)
         await asyncio.gather(*tasks)
-        await self.populate_table()
+        await self.populate_table(table)
     
-    async def populate_table(self):
+    async def populate_table(self, table):
         """
         Populate the data table with the fetched ticket information.
         """
-        self.table.clear()
+        table.clear()
         for info in self.ticket_info_list:
             row_style = ''
             if info['ready_for_deletion']:
                 row_style = "bold"
-            self.table.add_row(
+            table.add_row(
                 Text(info['ticket_number']),
                 Text(str(info['folder_size'])),
                 Text(info['closed_at_local'], style=row_style),
@@ -205,20 +248,6 @@ class TicketApp(App):
         url = selected_row['url']
         webbrowser.open(url)
         print(f"Selected Ticket: {ticket_number}")
-
-    def on_key(self, event):
-        """
-        Handle key events, such as showing the deletion confirmation.
-
-        Args:
-            event (Key): The key event.
-        """
-        table = self.query_one(DataTable)
-        if isinstance(event, Key):
-            if event.key == "x":
-                self.query_one("#deletion_container").styles.display = "block"
-                self.query_one(DataTable).styles.display = "none"
-                self.show_deletion_confirmation()
 
     def show_deletion_confirmation(self):
         """
@@ -244,7 +273,7 @@ class TicketApp(App):
                     Text(str(info['ready_for_deletion']), style=row_style)
                 )
             self.deletion_confirmation_text.update("Are you sure ALL of these folders are ready to be moved to the 'MARKED FOR DELETION' folder?")
-        self.query_one("#data_table").styles.display = "none"
+        self.query_one("#main_container").styles.display = "none"
         self.deletion_container.styles.display = "block"
 
 
