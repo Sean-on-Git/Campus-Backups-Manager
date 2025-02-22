@@ -1,12 +1,16 @@
 from rich.text import Text
 from textual.app import App
-from textual.widgets import Header, Footer, DataTable, Static, Input, Button, ProgressBar
-from textual.containers import Container
+from textual.widgets import Label, Header, Footer, DataTable, Static, Input, Button, ProgressBar
+from textual.containers import Container, Center, VerticalScroll
 from textual.reactive import reactive
 from textual.events import Key
 import webbrowser
 import asyncio
-from api_utils import move_to_deletion_folder, scan_directory_for_tickets, fetch_ticket_info, BACKUPS_LOCATION, INSTANCE, DELETION_LOCATION
+from api_utils import (
+    move_to_deletion_folder, scan_directory_for_tickets, fetch_ticket_info,
+    error_logger, debug_logger,
+    BACKUPS_LOCATION, INSTANCE, DELETION_LOCATION
+)
 
 class TicketApp(App):
     CSS_PATH = "style.tcss"
@@ -28,7 +32,9 @@ class TicketApp(App):
         self.main_table = self.create_table("data_table", ["Ticket Number", "Size", "Closed At (Local)", "Closed By Username", "Ready for Pickup Tag", "Ready for Deletion"])
         self.main_container = self.create_container("main_container", [self.main_table, Button("Move to Deletion", id="move_deletion"), Button("Empty Delete Folder", id="perm_delete")])
         yield self.main_container
-        yield ProgressBar(id="progress_bar")
+        with Center(id="progress_container"):
+            yield Label("Loading Service Now API", id="progress_label")
+            yield ProgressBar(id="progress_bar", show_eta=False)
 
         self.deletion_table = self.create_table("deletion_table", ["Ticket Number", "Closed At (Local)", "Closed By Username", "Ready for Pickup Tag", "Ready for Deletion"])
         self.deletion_table.cursor_type = "row"
@@ -124,7 +130,7 @@ class TicketApp(App):
         self.query_one("#username").focus()
         self.show("#login_container")
         self.hide("#main_container")
-        self.hide(ProgressBar)
+        self.hide("#progress_container")
         self.hide("#deletion_container")
         self.hide("#login_error")
 
@@ -138,7 +144,7 @@ class TicketApp(App):
         if event.button.id == "login_button":
             self.query_one("#login_container").styles.display = "none"
             self.query_one("#main_container").styles.display = "none"
-            self.query_one(ProgressBar).styles.display = "block"
+            self.query_one("#progress_container").styles.display = "block"
             self.username = self.query_one("#username").value
             self.password = self.query_one("#password").value
             await self.load_tickets(INSTANCE, self.username, self.password, BACKUPS_LOCATION, self.main_table)
@@ -177,18 +183,21 @@ class TicketApp(App):
             ticket_info = await asyncio.to_thread(fetch_ticket_info, instance, username, password, ticket_number)
             if ticket_info:
                 self.ticket_info_list.append(ticket_info)
-                self.call_later(self.update_progress)
+                #self.call_later(self.update_progress)
+                self.update_progress(ticket_number)
         except Exception as e:
             self.show("#login_error")
             self.hide("#main_container")
             self.query_one("#login_error").styles.color = "red"
-            print(f"Error fetching ticket info: {e}")
+            error_logger.log(f"Error fetching ticket info: {e}")
     
-    def update_progress(self):
+    def update_progress(self, ticket_number):
         """
         Update the progress bar by advancing its value.
         """
-        progress = self.query_one(ProgressBar)
+        progress = self.query_one("#progress_bar")
+        label = self.query_one("#progress_label")
+        label.update(f"Loading {ticket_number}...")
         progress.advance(1)
 
     async def load_tickets(self, instance, username, password, directory, table):
@@ -205,8 +214,8 @@ class TicketApp(App):
         ticket_numbers = scan_directory_for_tickets(directory)
         self.ticket_info_list = []
         total_tickets = len(ticket_numbers)
-        progress = self.query_one(ProgressBar)
-        progress.styles.display = "block"
+        self.show("#progress_container")
+        progress = self.query_one("#progress_bar")
         progress.total = total_tickets
         tasks = []
         for ticket_number in ticket_numbers:
@@ -233,7 +242,7 @@ class TicketApp(App):
                 Text(str(info['ready_for_deletion']), style=row_style)
             )
         self.query_one(DataTable).styles.display = "block"
-        self.query_one(ProgressBar).styles.display = "none"
+        self.hide("#progress_container")
 
     async def on_data_table_row_selected(self, event: DataTable.RowSelected):
         """

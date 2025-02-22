@@ -1,3 +1,15 @@
 .bold {
     text-style: bold;
 }
+
+#progress_bar {
+    display: block;
+    align: center middle;
+    padding-left: 15
+}
+
+Center {
+    margin-top: 1;
+    margin-bottom: 1;
+    layout: horizontal;
+}
