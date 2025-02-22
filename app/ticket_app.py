@@ -1,6 +1,6 @@
 from rich.text import Text
 from textual.app import App
-from textual.widgets import Label, Header, Footer, DataTable, Static, Input, Button, ProgressBar
+from textual.widgets import Checkbox, Label, Header, Footer, DataTable, Static, Input, Button, ProgressBar
 from textual.containers import Container, Center, VerticalScroll
 from textual.reactive import reactive
 from textual.events import Key
@@ -32,11 +32,12 @@ class TicketApp(App):
         self.main_table = self.create_table("data_table", ["Ticket Number", "Size", "Closed At (Local)", "Closed By Username", "Ready for Pickup Tag", "Ready for Deletion"])
         self.main_container = self.create_container("main_container", [self.main_table, Button("Move to Deletion", id="move_deletion"), Button("Empty Delete Folder", id="perm_delete")])
         yield self.main_container
+        
         with Center(id="progress_container"):
             yield Label("Loading Service Now API", id="progress_label")
             yield ProgressBar(id="progress_bar", show_eta=False)
 
-        self.deletion_table = self.create_table("deletion_table", ["Ticket Number", "Closed At (Local)", "Closed By Username", "Ready for Pickup Tag", "Ready for Deletion"])
+        self.deletion_table = self.create_table("deletion_table", ["Checkbox", "Ticket Number", "Closed At (Local)", "Closed By Username", "Ready for Pickup Tag", "Ready for Deletion"])
         self.deletion_table.cursor_type = "row"
         self.deletion_confirmation_text = Static("Are you sure ALL of these folders are ready to be moved to the 'MARKED FOR DELETION' folder?")
         self.deletion_container = Container(
@@ -244,6 +245,26 @@ class TicketApp(App):
         self.query_one(DataTable).styles.display = "block"
         self.hide("#progress_container")
 
+    async def populate_deletion_table(self, table):
+        """
+        Populate the data table with the fetched ticket information.
+        """
+        table.clear()
+        for info in self.ticket_info_list:
+            row_style = ''
+            if info['ready_for_deletion']:
+                row_style = "bold"
+            table.add_row(
+                Text(info['ticket_number']),
+                Text(str(info['folder_size'])),
+                Text(info['closed_at_local'], style=row_style),
+                Text(info['closed_by_username'], style=row_style),
+                Text(str(info['has_ready_for_pickup_tag']), style=row_style),
+                Text(str(info['ready_for_deletion']), style=row_style)
+            )
+        self.query_one(DataTable).styles.display = "block"
+        self.hide("#progress_container")
+
     async def on_data_table_row_selected(self, event: DataTable.RowSelected):
         """
         Handle the event when a row is selected in the data table.
@@ -275,6 +296,7 @@ class TicketApp(App):
                 if info['ready_for_deletion']:
                     row_style = "bold"
                 self.deletion_table.add_row(
+                    Checkbox(id=f"{info['ticket_number']}"),
                     Text(info['ticket_number'], style=row_style),
                     Text(info['closed_at_local'], style=row_style),
                     Text(info['closed_by_username'], style=row_style),
