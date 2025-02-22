@@ -6,6 +6,33 @@ from datetime import datetime, timedelta
 import pytz
 import json
 import platform
+import logging
+
+# Set up logging for errors
+# logging.basicConfig(filename='errors.log', level=logging.ERROR,
+#                    format='%(asctime)s %(levelname)s %(message)s')
+error_handler = logging.FileHandler('error.log')
+error_handler.setLevel(logging.ERROR)
+error_formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+error_handler.setFormatter(error_formatter)
+
+# Adding debug handler to error logger
+error_logger = logging.getLogger()
+error_logger.setLevel(logging.ERROR)
+error_logger.addHandler(error_handler)
+error_logger.debug("Error logging setup completed.")
+
+# Set up logging for debug logs
+debug_handler = logging.FileHandler('debug.log')
+debug_handler.setLevel(logging.DEBUG)
+debug_formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+debug_handler.setFormatter(debug_formatter)
+
+# Adding debug handler to the debug logger
+debug_logger = logging.getLogger()
+debug_logger.setLevel(logging.DEBUG)
+debug_logger.addHandler(debug_handler)
+debug_logger.debug("Logging setup completed.")
 
 def adjust_path(path):
     """
@@ -34,10 +61,10 @@ def load_config():
             config = json.load(f)
         return config
     except FileNotFoundError:
-        print("Error: config.json file not found.")
+        error_logger.error("Error: config.json file not found.")
         return None
     except json.JSONDecodeError:
-        print("Error: config.json file is not a valid JSON file.")
+        error_logger.error("Error: config.json file is not a valid JSON file.")
         return None
 
 config = load_config()
@@ -47,7 +74,7 @@ if config:
     BACKUPS_LOCATION = config['backups_location']
     DELETION_LOCATION = config['deletion_location']
 else:
-    raise Exception("Error: unable to load configuration.\nA 'config.json' needs to be in the same directory as this app.")
+    error_logger.error("Error: unable to load configuration.\nA 'config.json' needs to be in the same directory as this app.")
     exit()
     # you can exit the program here or handle it in some other way
 
@@ -85,9 +112,9 @@ def move_to_deletion_folder(ticket_numbers):
                     deletion_path = os.path.join(DELETION_LOCATION, folder_name)
                     try:
                         shutil.move(folder_path, deletion_path)
-                        print(f"Moved {folder_name} to {DELETION_LOCATION}")
+                        # debug_logger.debug(f"Moved {folder_name} to {DELETION_LOCATION}")
                     except Exception as e:
-                        print(f"Error moving {folder_name}: {e}")
+                        error_logger.error(f"Error moving {folder_name}: {e}")
 
 def fetch_username_info(instance, username, password, closed_by_id):
     """
@@ -111,7 +138,8 @@ def fetch_username_info(instance, username, password, closed_by_id):
         else:
             closed_by_username = 'N/A'
     else:
-        raise Exception(f"Error fetching user info: {response_user.status_code} - {response_user.text}")
+        error_logger.error(f"Error fetching user info: {response_user.status_code} - {response_user.text}")
+        closed_by_username = 'N/A'
     return closed_by_username
 
 def fetch_label_info(instance, username, password, ticket_number):
@@ -139,7 +167,7 @@ def fetch_label_info(instance, username, password, ticket_number):
                         has_ready_for_pickup_tag = True
                         break
     else:
-        raise Exception(f"Error fetching label info: {response_label_entry.status_code} - {response_label_entry.text}")
+        error_logger.error(f"Error fetching label info: {response_label_entry.status_code} - {response_label_entry.text}")
     return has_ready_for_pickup_tag
 
 def get_folder_size(folder_path):
@@ -156,7 +184,11 @@ def get_folder_size(folder_path):
     for dirpath, dirnames, filenames in os.walk(folder_path):
         for f in filenames:
             fp = os.path.join(dirpath, f)
-            total_size += os.path.getsize(fp)
+            try:
+                total_size += os.path.getsize(fp)
+                debug_logger.debug(f"os.path is '{fp}'\n\tSize is {os.path.getsize(fp)}")
+            except Exception as e:
+                error_logger.error(f"Error getting size for file {fp}:\n\t{e}")
     return total_size
 
 def human_readable_size(size):
@@ -223,5 +255,5 @@ def fetch_ticket_info(instance, username, password, ticket_number):
                 'url': f"https://{instance}/nav_to.do?uri=sc_req_item.do?sys_id={sys_id}"
             }
     else:
-        raise Exception(f"Error fetching ticket info: {response_item.status_code} - {response_item.text}")
+        error_logger.error(f"Error fetching ticket info: {response_item.status_code} - {response_item.text}")
     return None
