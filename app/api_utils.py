@@ -170,6 +170,17 @@ def fetch_label_info(instance, username, password, ticket_number):
         error_logger.error(f"Error fetching label info: {response_label_entry.status_code} - {response_label_entry.text}")
     return has_ready_for_pickup_tag
 
+def find_matching_folders(backups_location, ticket_number) -> str:
+    # List all folders in the specified backups location
+    all_folders = os.listdir(backups_location)
+
+    # Filter folders that contain the search pattern
+    matching_folders = [folder for folder in all_folders if ticket_number in folder]
+
+    error_logger.error(f"MATCHING FOLDERS: {matching_folders}")
+
+    return matching_folders[0]
+
 def get_folder_size(folder_path):
     """
     Calculate the total size of a folder in bytes.
@@ -243,7 +254,7 @@ def fetch_ticket_info(instance, username, password, ticket_number):
                 closed_at_local = 'N/A'
                 ready_for_deletion = False
             closed_by_username = fetch_username_info(instance, username, password, closed_by_id)
-            folder_size = human_readable_size(get_folder_size(os.path.join(BACKUPS_LOCATION, ticket_number)))
+            folder_size = human_readable_size(get_folder_size(os.path.join(BACKUPS_LOCATION, find_matching_folders(BACKUPS_LOCATION, ticket_number))))
             return {
                 'ticket_number': ticket_number,
                 'sys_id': sys_id,
