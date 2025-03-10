@@ -46,7 +46,7 @@ class TicketApp(App):
             [
                 self.main_table,
                 Button("Move to Deletion", id="move_deletion"),
-                Button("Empty Delete Folder", id="perm_delete")
+                Button("Empty Delete Folder (DO NOT USE YET)", id="perm_delete")
             ]
         )
         yield self.main_container
