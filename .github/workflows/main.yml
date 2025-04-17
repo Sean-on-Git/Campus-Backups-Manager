@@ -42,4 +42,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: executable-${{ matrix.os }}
-          path: dist/ticket_app  # Adjust based on your script name
+          path: bin  # Adjust based on your script name
