@@ -30,10 +30,16 @@ jobs:
           pip install pyinstaller  # Install PyInstaller
           pip install -r app/requirements.txt  # Install your app's dependencies
 
-      - name: Build executable
+      - name: Build executable (Linux)
+        if: runner.os == 'Linux'
         run: |
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            pyinstaller --onefile app/ticket_app.py  # Replace with your script name
-          elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            pyinstaller --onefile app/ticket_app.py  # Replace with your script name
-          fi
+          pyinstaller --onefile app/ticket_app.py
+
+      - name: Build executable (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          pyinstaller --onefile app/ticket_app.py
+
+      - name: Create dist directory
+        run: mkdir -p dist  # Create the bin directory if it doesn't exist
