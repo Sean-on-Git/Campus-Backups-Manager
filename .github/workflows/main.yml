@@ -40,6 +40,3 @@ jobs:
         shell: pwsh
         run: |
           pyinstaller --onefile app/ticket_app.py
-
-      - name: Create dist directory
-        run: mkdir -p dist  # Create the bin directory if it doesn't exist
