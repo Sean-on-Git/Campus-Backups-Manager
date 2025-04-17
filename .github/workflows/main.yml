@@ -37,9 +37,3 @@ jobs:
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
             pyinstaller --onefile app/ticket_app.py  # Replace with your script name
           fi
-
-      - name: Upload Executable
-        uses: actions/upload-artifact@v2
-        with:
-          name: executable-${{ matrix.os }}
-          path: bin/ticket_app  # Adjust based on your script name
