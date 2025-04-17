@@ -50,14 +50,14 @@ jobs:
         run: mv dist/ticket_app.exe bin/
 
       - name: Upload Executable
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: runner.os == 'Linux'
         with:
           name: executable-${{ runner.os }}
           path: bin/ticket_app  # Adjust based on your script name
 
       - name: Upload Executable
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: runner.os == 'Windows'
         with:
           name: executable-${{ runner.os }}
