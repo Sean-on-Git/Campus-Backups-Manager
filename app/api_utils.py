@@ -42,7 +42,7 @@ def adjust_path(path):
         path (str): A filesystem path. Ex: '/home/user/Documents', 'C:\\Users\\me\\Documents'
 
     Returns:
-        str: With appropriate slashes. Ex: "../MyBackups/here" -> "..\\MyBackups\\her"
+        str: With appropriate slashes. Ex: "../MyBackups/here" -> "..\\MyBackups\\here"
     """
     if platform.system() == "Windows":
         return path.replace("/", "\\")
@@ -230,7 +230,7 @@ def fetch_ticket_info(instance, username, password, ticket_number):
     Returns:
         dict: Dictionary containing the ticket information.
     """
-    print(f"Loading data for ticket: {ticket_number}")
+    debug_logger.debug(f"Loading data for ticket: {ticket_number}")
     url_item = f"https://{instance}/api/now/table/sc_req_item?sysparm_query=number={ticket_number}"
     response_item = requests.get(url_item, auth=(username, password))
     if response_item.status_code == 200:
@@ -254,6 +254,7 @@ def fetch_ticket_info(instance, username, password, ticket_number):
                 closed_at_local = 'N/A'
                 ready_for_deletion = False
             closed_by_username = fetch_username_info(instance, username, password, closed_by_id)
+            debug_logger.debug(f"Scanning file size for {ticket_number}")
             folder_size = human_readable_size(get_folder_size(os.path.join(BACKUPS_LOCATION, find_matching_folders(BACKUPS_LOCATION, ticket_number))))
             return {
                 'ticket_number': ticket_number,
