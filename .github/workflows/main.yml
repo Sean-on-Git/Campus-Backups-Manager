@@ -33,29 +33,13 @@ jobs:
       - name: Build executable
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            pyinstaller --onefile your_script.py  # Replace with your script name
+            pyinstaller --onefile app/ticket_app.py  # Replace with your script name
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            pyinstaller --onefile your_script.py  # Replace with your script name
+            pyinstaller --onefile app/ticket_app.py  # Replace with your script name
           fi
 
       - name: Upload Executable
         uses: actions/upload-artifact@v2
         with:
           name: executable-${{ matrix.os }}
-          path: dist/your_script  # Adjust based on your script name
-
-  download:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Download Executable
-        uses: actions/download-artifact@v2
-        with:
-          name: executable-ubuntu-latest  # For Linux
-          path: ./artifacts/linux  # Path to save the Linux artifact
-
-      - name: Download Executable (Windows)
-        uses: actions/download-artifact@v2
-        with:
-          name: executable-windows-latest  # For Windows
-          path: ./artifacts/windows  # Path to save the Windows artifact
+          path: dist/ticket_app  # Adjust based on your script name
