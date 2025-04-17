@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import re
 import requests
@@ -34,6 +35,16 @@ debug_logger.setLevel(logging.DEBUG)
 debug_logger.addHandler(debug_handler)
 debug_logger.debug("Logging setup completed.")
 
+
+# Get the directory of the executable
+if getattr(sys, 'frozen', False):
+     # If the application is frozen (i.e., packaged with PyInstaller)
+    APPLICATION_PATH = os.path.dirname(sys.executable)
+else:
+    # If the application is not frozen
+    APPLICATION_PATH = os.path.dirname(__file__)
+
+
 def adjust_path(path):
     """
     Adjusts slashes to the appropriate type for the current OS
@@ -57,7 +68,7 @@ def load_config():
         dict: Configuration dictionary if the file is found and valid, otherwise None.
     """
     try:
-        with open('config.json') as f:
+        with open(APPLICATION_PATH + 'config.json') as f:
             config = json.load(f)
         return config
     except FileNotFoundError:

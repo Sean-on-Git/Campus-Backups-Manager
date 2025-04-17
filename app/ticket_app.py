@@ -9,17 +9,17 @@ import asyncio
 from api_utils import (
     move_to_deletion_folder, scan_directory_for_tickets, fetch_ticket_info,
     error_logger, debug_logger,
-    BACKUPS_LOCATION, INSTANCE, DELETION_LOCATION
+    BACKUPS_LOCATION, INSTANCE, DELETION_LOCATION, APPLICATION_PATH
 )
 
 class TicketApp(App):
-    CSS_PATH = "style.tcss"
+    CSS_PATH = APPLICATION_PATH + "style.tcss"
     selected_index: reactive[int] = reactive(0)
     ticket_info_list: reactive[list] = reactive([])
 
     is_deletion_list_created: bool = False
 
-    def compose(self) -> App:
+    def compose(self):
         """
         Compose the app layout with all the necessary widgets and containers.
 
