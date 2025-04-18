@@ -10,12 +10,13 @@ Example layout:
     "instance": "example.service-now.com",
     "backups_location": "C:\\backups",
     "deletion_location": "C:\\backups\\_MARKED-FOR-DELETION"
+    "get_size": "False" // Gets size of each backup folder if True. Can GREATLY impact loading time if set to true
 }
 ```
 
-Currently, "config.json" is read from your current working directory when running the application.
+Currently, "config.json" is read from the same directory as the binary.
 
-A static location or command line argument may be added later to specify config location.
+A command line argument may be added later to specify config location.
 
 #### Logging
 Log files are stored in same directory as executable.
