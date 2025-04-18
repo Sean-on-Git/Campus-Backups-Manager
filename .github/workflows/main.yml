@@ -22,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'  # Specify your Python version
+          python-version: '3.12'  # Specify your Python version
 
       - name: Install dependencies
         run: |
@@ -53,12 +53,12 @@ jobs:
         uses: actions/upload-artifact@v4
         if: runner.os == 'Linux'
         with:
-          name: executable-${{ runner.os }}
+          name: backup_remover-bin-${{ runner.os }}
           path: bin/ticket_app  # Adjust based on your script name
 
       - name: Upload Executable
         uses: actions/upload-artifact@v4
         if: runner.os == 'Windows'
         with:
-          name: executable-${{ runner.os }}
+          name: backup_remover-bin-${{ runner.os }}
           path: bin/ticket_app.exe  # Adjust based on your script name
