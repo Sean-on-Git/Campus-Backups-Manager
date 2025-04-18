@@ -8,7 +8,7 @@ import webbrowser
 import asyncio
 from api_utils import (
     move_to_deletion_folder, scan_directory_for_tickets, fetch_ticket_info,
-    error_logger, debug_logger, adjust_path
+    error_logger, debug_logger, adjust_path,
     BACKUPS_LOCATION, INSTANCE, DELETION_LOCATION, APPLICATION_PATH
 )
 
