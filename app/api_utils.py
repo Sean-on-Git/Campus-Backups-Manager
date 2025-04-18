@@ -273,7 +273,7 @@ def fetch_ticket_info(instance, username, password, ticket_number):
             closed_by_username = fetch_username_info(instance, username, password, closed_by_id)
             debug_logger.debug(f"Scanning file size for {ticket_number}")
             
-            if GET_SIZE_BOOL:
+            if GET_SIZE_BOOL == True:
                 debug_logger.debug(f"Getting backup size info for ticket: {ticket_number}")
                 folder_size = human_readable_size(get_folder_size(os.path.join(BACKUPS_LOCATION, find_matching_folders(BACKUPS_LOCATION, ticket_number))))
             else:
