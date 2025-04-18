@@ -68,7 +68,7 @@ def load_config():
         dict: Configuration dictionary if the file is found and valid, otherwise None.
     """
     try:
-        with open(APPLICATION_PATH + 'config.json') as f:
+        with open(adjust_path(APPLICATION_PATH + '/config.json')) as f:
             config = json.load(f)
         return config
     except FileNotFoundError:
