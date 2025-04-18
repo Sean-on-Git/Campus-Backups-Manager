@@ -84,6 +84,12 @@ if config:
     INSTANCE = config['instance']
     BACKUPS_LOCATION = adjust_path(config['backups_location'])
     DELETION_LOCATION = adjust_path(config['deletion_location'])
+
+    # Optionally toggle on grabbing size info for ticket
+    if config['get_size']:
+        GET_SIZE_BOOL = config['get_size']
+    else:
+        GET_SIZE_BOOL = False
 else:
     error_logger.error("Error: unable to load configuration.\nA 'config.json' needs to be in the same directory as this app.")
     exit()
@@ -188,7 +194,7 @@ def find_matching_folders(backups_location, ticket_number) -> str:
     # Filter folders that contain the search pattern
     matching_folders = [folder for folder in all_folders if ticket_number in folder]
 
-    error_logger.error(f"MATCHING FOLDERS: {matching_folders}")
+    debug_logger.debug(f"MATCHING FOLDERS: {matching_folders}")
 
     return matching_folders[0]
 
@@ -266,7 +272,11 @@ def fetch_ticket_info(instance, username, password, ticket_number):
                 ready_for_deletion = False
             closed_by_username = fetch_username_info(instance, username, password, closed_by_id)
             debug_logger.debug(f"Scanning file size for {ticket_number}")
-            folder_size = human_readable_size(get_folder_size(os.path.join(BACKUPS_LOCATION, find_matching_folders(BACKUPS_LOCATION, ticket_number))))
+            
+            if GET_SIZE_BOOL:
+                folder_size = human_readable_size(get_folder_size(os.path.join(BACKUPS_LOCATION, find_matching_folders(BACKUPS_LOCATION, ticket_number))))
+            else:
+                folder_size = 0
             return {
                 'ticket_number': ticket_number,
                 'sys_id': sys_id,
