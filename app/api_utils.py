@@ -82,8 +82,8 @@ config = load_config()
 
 if config:
     INSTANCE = config['instance']
-    BACKUPS_LOCATION = config['backups_location']
-    DELETION_LOCATION = config['deletion_location']
+    BACKUPS_LOCATION = adjust_path(config['backups_location'])
+    DELETION_LOCATION = adjust_path(config['deletion_location'])
 else:
     error_logger.error("Error: unable to load configuration.\nA 'config.json' needs to be in the same directory as this app.")
     exit()
