@@ -41,15 +41,52 @@ class TicketApp(App):
                 "Ready for Deletion"
             ]
         )
-        self.main_container = self.create_container(
-            "main_container",
+
+        self.perm_delete_table = self.create_table(
+            "delete_table", [
+                "Ticket Number",
+                "Size",
+                "Closed At (Local)",
+                "Closed By Username",
+                "Ready for Pickup Tag",
+                "Ready for Deletion"
+            ]
+        )
+
+        self.main_buttons = self.create_container(
+            "main_buttons",
             [
-                self.main_table,
                 Button("Move to Deletion", id="move_deletion"),
                 Button("Empty Delete Folder (DO NOT USE YET)", id="perm_delete")
             ]
         )
+
+        self.perm_delete_options = self.create_container(
+            "perm_delete_options",
+            [
+                Button("Go Back", id="back_to_main"),
+                Button("PERMANENTLY DELETE THESE FILES", id="acutally_delete_files")
+            ]
+        )
+
+        self.main_container = self.create_container(
+            "main_container",
+            [
+                self.main_table,
+                self.main_buttons
+            ]
+        )
         yield self.main_container
+
+        self.perm_delete_container = self.create_container(
+            "delete_container",
+            [
+                self.perm_delete_table,
+                self.perm_delete_options
+            ]
+        )
+        self.perm_delete_container.styles.display = "none"
+        yield self.perm_delete_container
         
         with Center(id="progress_container"):
             yield Label("Loading Service Now API", id="progress_label")
@@ -156,6 +193,42 @@ class TicketApp(App):
         self.hide("#deletion_container")
         self.hide("#login_error")
 
+    async def login_button_press(self):
+        self.hide("#login_container")
+        self.hide("#main_container")
+        self.show("#progress_container")
+        self.username = self.query_one("#username").value
+        self.password = self.query_one("#password").value
+        await self.load_tickets(INSTANCE, self.username, self.password, BACKUPS_LOCATION, self.main_table)
+        self.show("#main_container")
+        self.query_one("#data_table").focus()
+
+    def no_delete_button_press(self):
+        self.show("#main_container")
+        self.hide("#deletion_container")
+        self.query_one("#data_table").focus()
+
+    async def yes_deletion_button_press(self):
+        ticket_numbers = [ checkbox.id.split("_")[1] for checkbox in self.query('Checkbox') if checkbox.value ]
+        
+        debug_logger.debug(f"MOVE TO DELETION: {ticket_numbers}")
+
+        move_to_deletion_folder(ticket_numbers)
+        await self.load_tickets(INSTANCE, self.username, self.password, BACKUPS_LOCATION, self.main_table)
+        self.show("#main_container")
+        self.query_one("#data_table").focus()
+        self.hide("#deletion_container")
+
+    def move_deletion_press(self):
+        self.query_one("#deletion_container").styles.display = "block"
+        self.query_one("#main_container").styles.display = "none"
+        self.show_deletion_confirmation()
+
+    async def perm_delete_press(self):
+        await self.load_tickets(INSTANCE, self.username, self.password, DELETION_LOCATION, self.perm_delete_table)
+        self.hide('#' + self.main_container.id)
+        self.show('#' + self.perm_delete_container.id)
+
     async def on_button_pressed(self, event):
         """
         Handle button pressed events, including login, deletion confirmation, and cancellation.
@@ -164,36 +237,18 @@ class TicketApp(App):
             event (Button.Pressed): The button pressed event.
         """
         if event.button.id == "login_button":
-            self.hide("#login_container")
-            self.hide("#main_container")
-            self.show("#progress_container")
-            self.username = self.query_one("#username").value
-            self.password = self.query_one("#password").value
-            await self.load_tickets(INSTANCE, self.username, self.password, BACKUPS_LOCATION, self.main_table)
-            self.show("#main_container")
-            self.query_one("#data_table").focus()
+            await self.login_button_press()
         elif event.button.id == "no_deletion_button":
-            self.show("#main_container")
-            self.hide("#deletion_container")
-            self.query_one("#data_table").focus()
+            self.no_delete_button_press()
         elif event.button.id == "yes_deletion_button":
-            ticket_numbers = [ checkbox.id.split("_")[1] for checkbox in self.query('Checkbox') if checkbox.value ]
-            
-            debug_logger.debug(f"MOVE TO DELETION: {ticket_numbers}")
-            
-            #deletion_info_list = [info for info in self.ticket_info_list if info['ready_for_deletion']]
-            #ticket_numbers = [info['ticket_number'] for info in deletion_info_list]
-            move_to_deletion_folder(ticket_numbers)
-            await self.load_tickets(INSTANCE, self.username, self.password, BACKUPS_LOCATION, self.main_table)
-            self.show("#main_container")
-            self.query_one("#data_table").focus()
-            self.hide("#deletion_container")
+            await self.yes_deletion_button_press()
         elif event.button.id == "move_deletion":
-            self.query_one("#deletion_container").styles.display = "block"
-            self.query_one("#main_container").styles.display = "none"
-            self.show_deletion_confirmation()
+            self.move_deletion_press()
         elif event.button.id == "perm_delete":
-            await self.load_tickets(INSTANCE, self.username, self.password, DELETION_LOCATION)
+            await self.perm_delete_press()
+        elif event.button.id == "back_to_main":
+            self.show('#' + self.main_container.id)
+            self.hide('#' + self.perm_delete_container.id)
 
     async def fetch_ticket_info_task(self, instance, username, password, ticket_number):
         """
@@ -268,30 +323,10 @@ class TicketApp(App):
                 Text(str(info['has_ready_for_pickup_tag']), style=row_style),
                 Text(str(info['ready_for_deletion']), style=row_style)
             )
-        self.query_one(DataTable).styles.display = "block"
+        self.show('#' + table.id)
         self.hide("#progress_container")
 
-    async def populate_deletion_table(self, table):
-        """
-        Populate the data table with the fetched ticket information.
-        """
-        table.clear()
-        for info in self.ticket_info_list:
-            row_style = ''
-            if info['ready_for_deletion']:
-                row_style = "bold"
-            table.add_row(
-                Text(info['ticket_number']),
-                Text(str(info['folder_size'])),
-                Text(info['closed_at_local'], style=row_style),
-                Text(info['closed_by_username'], style=row_style),
-                Text(str(info['has_ready_for_pickup_tag']), style=row_style),
-                Text(str(info['ready_for_deletion']), style=row_style)
-            )
-        self.query_one(DataTable).styles.display = "block"
-        self.hide("#progress_container")
-
-    def create_delete_checklist(self, deletion_info_list):
+    def create_marked_for_delete_checklist(self, deletion_info_list):
         # deletion_info_list = [info for info in self.ticket_info_list if info['ready_for_deletion']]
         
         if not self.is_deletion_list_created:
@@ -326,39 +361,9 @@ class TicketApp(App):
         deletion_info_list = [info for info in self.ticket_info_list if info['ready_for_deletion']]
         
         if not deletion_info_list:
-            # Handle the case where there are no tickets ready for deletion
-            # self.deletion_table.clear()
             self.deletion_confirmation_text.update("No tickets are ready for deletion.")
         else:
-            # self.deletion_table.clear()
-            #for info in deletion_info_list:
-            #    row_style = ''
-            #    checkbox = Checkbox()
-            #    # checkbox.id = info['ticket_number']
-            #    if info['ready_for_deletion']:
-            #        row_style = "bold"
-            #    self.deletion_table.add_row(
-            #        checkbox,
-            #        Text(info['ticket_number'], style=row_style),
-            #        Text(info['closed_at_local'], style=row_style),
-            #        Text(info['closed_by_username'], style=row_style),
-            #        Text(str(info['has_ready_for_pickup_tag']), style=row_style),
-            #        Text(str(info['ready_for_deletion']), style=row_style)
-            #    )
-
-            #center = Center(id="delete_center_container")
-            #scroll = VerticalScroll()
-
-            #for info in deletion_info_list:
-            #    self.scroll.append(Checkbox(f"{info['ticket_number']} - {info['closed_at_local']} - {info['closed_by_username']}"))
-
-            self.create_delete_checklist(deletion_info_list)
-
-            #with center:
-            #    yield scroll
-
-            #yield center
-
+            self.create_marked_for_delete_checklist(deletion_info_list)
             self.deletion_confirmation_text.update("Are you sure ALL of these folders are ready to be moved to the 'MARKED FOR DELETION' folder?")
         self.hide("#main_container")
         self.deletion_container.styles.display = "block"

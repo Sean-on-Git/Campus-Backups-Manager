@@ -86,14 +86,13 @@ if config:
     DELETION_LOCATION = adjust_path(config['deletion_location'])
 
     # Optionally toggle on grabbing size info for ticket
-    if config['get_size']:
+    if not config['get_size']:
         GET_SIZE_BOOL = config['get_size']
     else:
         GET_SIZE_BOOL = False
 else:
     error_logger.error("Error: unable to load configuration.\nA 'config.json' needs to be in the same directory as this app.")
     exit()
-    # you can exit the program here or handle it in some other way
 
 def scan_directory_for_tickets(directory):
     """

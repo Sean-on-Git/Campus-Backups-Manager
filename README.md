@@ -21,5 +21,5 @@ A command line argument may be added later to specify config location.
 #### Logging
 Log files are stored in same directory as executable.
 Errors are written to "error.log"
-Debuggin logs are written to "debug.log"
+Debugging logs are written to "debug.log"
 Currently debugging is enabled by default with no flags to disable.
