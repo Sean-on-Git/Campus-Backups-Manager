@@ -43,7 +43,7 @@ if getattr(sys, 'frozen', False):
 else:
     # If the application is not frozen
     APPLICATION_PATH = os.path.dirname(__file__)
-
+debug_logger.debug(f"Application path is reported as: {APPLICATION_PATH}")
 
 def adjust_path(path):
     """
