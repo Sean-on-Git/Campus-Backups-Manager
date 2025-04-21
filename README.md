@@ -18,6 +18,16 @@ Currently, "config.json" is read from the same directory as the binary.
 
 A command line argument may be added later to specify config location.
 
+You should structure the program as follows:
+
+```
+   PROGRAM FOLDER:
+   |
+   ├─backup_manager-bin
+   ├─styles.tcss (can be copied from the repo)
+   └─config.json
+```
+
 #### Logging
 Log files are stored in same directory as executable.
 Errors are written to "error.log"
