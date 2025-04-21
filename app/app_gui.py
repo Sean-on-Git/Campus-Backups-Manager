@@ -230,8 +230,16 @@ class TicketApp(App):
         self.hide('#' + self.main_container.id)
         self.show('#' + self.perm_delete_container.id)
 
+    async def back_to_main(self) -> None:
+        #self.show('#' + self.main_container.id)
+        self.hide('#' + self.perm_delete_container.id)
+        await self.load_tickets(INSTANCE, self.username, self.password, BACKUPS_LOCATION, self.main_table)
+        self.show('#' + self.main_container.id)
+
     def acutally_delete_files_press(self) -> None:
-        for folder in os.listdir(os.path.abspath(DELETION_LOCATION)):
+        deletion_folders = os.listdir(os.path.abspath(DELETION_LOCATION))
+        for folder in deletion_folders:
+            self.perm_removal_progress(folder, len(deletion_folders))
             perm_remove_directory(folder)
 
     async def on_button_pressed(self, event) -> None:
@@ -252,8 +260,7 @@ class TicketApp(App):
         elif event.button.id == "perm_delete":
             await self.perm_delete_press()
         elif event.button.id == "back_to_main":
-            self.show('#' + self.main_container.id)
-            self.hide('#' + self.perm_delete_container.id)
+            await self.back_to_main()
         elif event.button.id == "acutally_delete_files":
             self.acutally_delete_files_press()
 
@@ -280,14 +287,23 @@ class TicketApp(App):
             error_logger.error(f"Error fetching ticket info: {e}")
             exit()
     
-    def update_progress(self, ticket_number) -> None:
+    def update_progress(self, ticket_number, label_text="Loaded") -> None:
         """
         Update the progress bar by advancing its value.
         """
         progress = self.query_one("#progress_bar")
         label = self.query_one("#progress_label")
-        label.update(f"Loaded {ticket_number}...")
+        label.update(f"{label_text} {ticket_number}...")
+        label.recompose()
         progress.advance(1)
+
+    def perm_removal_progress(self, current, max):
+        self.show("#progress_container")
+        progress = self.query_one("#progress_bar")
+        progress.progress = 0
+        progress.total = max
+        progress.recompose()
+        self.update_progress(current, "Deleting")
 
     async def load_tickets(self, instance, username, password, directory, table) -> None:
         """
@@ -305,6 +321,8 @@ class TicketApp(App):
         total_tickets = len(ticket_numbers)
         self.show("#progress_container")
         progress = self.query_one("#progress_bar")
+        progress.progress = 0
+        progress.recompose()
         progress.total = total_tickets
         tasks = []
         for ticket_number in ticket_numbers:
