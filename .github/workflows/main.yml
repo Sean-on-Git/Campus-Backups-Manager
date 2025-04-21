@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout code
@@ -41,16 +41,29 @@ jobs:
         run: |
           pyinstaller --onefile main.py --name backup_remover.exe
 
-      - name: Upload Executable
+      - name: Build executable (MacOS)
+        if: runner.os == 'MacOS'
+        shell: pwsh
+        run: |
+          pyinstaller --onefile main.py --name backup_remover
+
+      - name: Upload Executable (Linux)
         uses: actions/upload-artifact@v4
         if: runner.os == 'Linux'
         with:
           name: backup_remover-bin-${{ runner.os }}
           path: dist/backup_remover  # Adjust based on your script name
 
-      - name: Upload Executable
+      - name: Upload Executable (Windows)
         uses: actions/upload-artifact@v4
         if: runner.os == 'Windows'
         with:
           name: backup_remover-bin-${{ runner.os }}
           path: dist/backup_remover.exe  # Adjust based on your script name
+      
+      - name: Upload Executable (MacOS)
+        uses: actions/upload-artifact@v4
+        if: runner.os == 'MacOS'
+        with:
+          name: backup_remover-bin-${{ runner.os }}
+          path: dist/backup_remover  # Adjust based on your script name
