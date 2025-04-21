@@ -28,37 +28,29 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller  # Install PyInstaller
-          pip install -r app/requirements.txt  # Install your app's dependencies
+          pip install -r requirements.txt  # Install your app's dependencies
 
       - name: Build executable (Linux)
         if: runner.os == 'Linux'
         run: |
-          pyinstaller --onefile app/ticket_app.py
+          pyinstaller --onefile main.py --name backup_remover
 
       - name: Build executable (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          pyinstaller --onefile app/ticket_app.py
-
-      - name: Move Executable to bin (Linux)
-        if: runner.os == 'Linux'
-        run: mv dist/ticket_app bin/
-
-      - name: Move Executable to bin (Windows)
-        if: runner.os == 'Windows'
-        run: mv dist/ticket_app.exe bin/
+          pyinstaller --onefile main.py --name backup_remover.exe
 
       - name: Upload Executable
         uses: actions/upload-artifact@v4
         if: runner.os == 'Linux'
         with:
           name: backup_remover-bin-${{ runner.os }}
-          path: bin/ticket_app  # Adjust based on your script name
+          path: dist/backup_remover  # Adjust based on your script name
 
       - name: Upload Executable
         uses: actions/upload-artifact@v4
         if: runner.os == 'Windows'
         with:
           name: backup_remover-bin-${{ runner.os }}
-          path: bin/ticket_app.exe  # Adjust based on your script name
+          path: dist/backup_remover.exe  # Adjust based on your script name
