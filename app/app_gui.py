@@ -95,8 +95,6 @@ class TicketApp(App):
         self.scroll_center = Center()
         self.scroll = VerticalScroll(self.scroll_center, id="delete_center_container")
 
-        # self.deletion_table = self.create_table("deletion_table", ["Checkbox", "Ticket Number", "Closed At (Local)", "Closed By Username", "Ready for Pickup Tag", "Ready for Deletion"])
-        # self.deletion_table.cursor_type = "row"
         self.deletion_confirmation_text = Static("Are you sure ALL of these folders are ready to be moved to the 'MARKED FOR DELETION' folder?")
         self.deletion_container = Container(
             self. scroll,
@@ -181,7 +179,7 @@ class TicketApp(App):
         """
         self.query_one(id).styles.display = "none"
 
-    def on_mount(self):
+    def on_mount(self) -> None:
         """
         Method called when the app is mounted. Initialize and display the main table and progress bar.
         """
@@ -193,7 +191,7 @@ class TicketApp(App):
         self.hide("#deletion_container")
         self.hide("#login_error")
 
-    async def login_button_press(self):
+    async def login_button_press(self) -> None:
         self.hide("#login_container")
         self.hide("#main_container")
         self.show("#progress_container")
@@ -203,12 +201,12 @@ class TicketApp(App):
         self.show("#main_container")
         self.query_one("#data_table").focus()
 
-    def no_delete_button_press(self):
+    def no_delete_button_press(self) -> None:
         self.show("#main_container")
         self.hide("#deletion_container")
         self.query_one("#data_table").focus()
 
-    async def yes_deletion_button_press(self):
+    async def yes_deletion_button_press(self) -> None:
         ticket_numbers = [ checkbox.id.split("_")[1] for checkbox in self.query('Checkbox') if checkbox.value ]
         
         debug_logger.debug(f"MOVE TO DELETION: {ticket_numbers}")
@@ -219,17 +217,17 @@ class TicketApp(App):
         self.query_one("#data_table").focus()
         self.hide("#deletion_container")
 
-    def move_deletion_press(self):
+    def move_deletion_press(self) -> None:
         self.query_one("#deletion_container").styles.display = "block"
         self.query_one("#main_container").styles.display = "none"
         self.show_deletion_confirmation()
 
-    async def perm_delete_press(self):
+    async def perm_delete_press(self) -> None:
         await self.load_tickets(INSTANCE, self.username, self.password, DELETION_LOCATION, self.perm_delete_table)
         self.hide('#' + self.main_container.id)
         self.show('#' + self.perm_delete_container.id)
 
-    async def on_button_pressed(self, event):
+    async def on_button_pressed(self, event) -> None:
         """
         Handle button pressed events, including login, deletion confirmation, and cancellation.
 
@@ -250,7 +248,7 @@ class TicketApp(App):
             self.show('#' + self.main_container.id)
             self.hide('#' + self.perm_delete_container.id)
 
-    async def fetch_ticket_info_task(self, instance, username, password, ticket_number):
+    async def fetch_ticket_info_task(self, instance, username, password, ticket_number) -> None:
         """
         Fetch information for a specific ticket asynchronously and update the progress.
 
@@ -273,7 +271,7 @@ class TicketApp(App):
             error_logger.error(f"Error fetching ticket info: {e}")
             exit()
     
-    def update_progress(self, ticket_number):
+    def update_progress(self, ticket_number) -> None:
         """
         Update the progress bar by advancing its value.
         """
@@ -282,7 +280,7 @@ class TicketApp(App):
         label.update(f"Loaded {ticket_number}...")
         progress.advance(1)
 
-    async def load_tickets(self, instance, username, password, directory, table):
+    async def load_tickets(self, instance, username, password, directory, table) -> None:
         """
         Load ticket information for all tickets in the backups location.
 
@@ -306,7 +304,7 @@ class TicketApp(App):
         await asyncio.gather(*tasks)
         await self.populate_table(table)
     
-    async def populate_table(self, table):
+    async def populate_table(self, table) -> None:
         """
         Populate the data table with the fetched ticket information.
         """
@@ -326,9 +324,7 @@ class TicketApp(App):
         self.show('#' + table.id)
         self.hide("#progress_container")
 
-    def create_marked_for_delete_checklist(self, deletion_info_list):
-        # deletion_info_list = [info for info in self.ticket_info_list if info['ready_for_deletion']]
-        
+    def create_marked_for_delete_checklist(self, deletion_info_list) -> None:
         if not self.is_deletion_list_created:
             for info in deletion_info_list:
                 self.scroll_center.mount(
@@ -340,7 +336,7 @@ class TicketApp(App):
                 )
             self.is_deletion_list_created = True
 
-    async def on_data_table_row_selected(self, event: DataTable.RowSelected):
+    async def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """
         Handle the event when a row is selected in the data table.
 
@@ -349,12 +345,10 @@ class TicketApp(App):
         """
         selected_index = event.cursor_row
         selected_row = self.ticket_info_list[selected_index]
-        ticket_number = selected_row['ticket_number']
         url = selected_row['url']
         webbrowser.open(url)
-        print(f"Selected Ticket: {ticket_number}")
 
-    def show_deletion_confirmation(self):
+    def show_deletion_confirmation(self) -> None:
         """
         Display the deletion confirmation container with the list of folders ready for deletion.
         """
