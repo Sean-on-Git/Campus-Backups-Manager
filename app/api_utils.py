@@ -257,15 +257,23 @@ def fetch_ticket_info(instance, username, password, ticket_number):
     response_item = requests.get(url_item, auth=(username, password))
     if response_item.status_code == 200:
         data_item = response_item.json()
+
+        # Confirm there is a result here
         if data_item['result']:
             item = data_item['result'][0]
             sys_id = item['sys_id']
             closed_at_utc = item.get('closed_at', 'N/A')
+
+            # Find out if ticket is tagged with "Ready for Pickup" in Service-Now
             has_ready_for_pickup_tag = fetch_label_info(instance, username, password, ticket_number)
+
+            # If ticket is closed, get the Service-Now UserID of who closed it
             if item.get('active') == "false":
                 closed_by_id = item.get('closed_by', {}).get('value', 'N/A')
             else:
                 closed_by_id = 'N/A'
+
+            # If ticket closed, then convert the "Closed at" time stamp to local time
             if closed_at_utc != 'N/A' and closed_at_utc != '':
                 utc_time = datetime.strptime(closed_at_utc, '%Y-%m-%d %H:%M:%S')
                 local_tz = pytz.timezone('America/New_York')
@@ -275,9 +283,11 @@ def fetch_ticket_info(instance, username, password, ticket_number):
             else:
                 closed_at_local = 'N/A'
                 ready_for_deletion = False
+
+            # Call Service-Now API to fetch username associated with closed_by_id
             closed_by_username = fetch_username_info(instance, username, password, closed_by_id)
-            debug_logger.debug(f"Scanning file size for {ticket_number}")
             
+            # Determine if we need to check file size
             if GET_SIZE_BOOL == True:
                 debug_logger.debug(f"Getting backup size info for ticket: {ticket_number}")
                 folder_size = human_readable_size(get_folder_size(os.path.join(BACKUPS_LOCATION, find_matching_folders(BACKUPS_LOCATION, ticket_number))))
@@ -285,6 +295,7 @@ def fetch_ticket_info(instance, username, password, ticket_number):
                 debug_logger.debug(f"Skipping backup size info for ticket: {ticket_number}")
                 folder_size = 0
 
+            # Returns JSON object to be entered as row data for DataTable in app_gui.py
             return {
                 'ticket_number': ticket_number,
                 'folder_name': find_matching_folder_name(BACKUPS_LOCATION, ticket_number) or find_matching_folder_name(DELETION_LOCATION, ticket_number),
