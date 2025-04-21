@@ -34,6 +34,7 @@ class TicketApp(App):
         self.main_table = self.create_table(
             "data_table", [
                 "Ticket Number",
+                "Folder Name",
                 "Size",
                 "Closed At (Local)",
                 "Closed By Username",
@@ -45,6 +46,7 @@ class TicketApp(App):
         self.perm_delete_table = self.create_table(
             "delete_table", [
                 "Ticket Number",
+                "Folder Name",
                 "Size",
                 "Closed At (Local)",
                 "Closed By Username",
@@ -315,6 +317,7 @@ class TicketApp(App):
                 row_style = "bold"
             table.add_row(
                 Text(info['ticket_number']),
+                Text(info['folder_name']),
                 Text(str(info['folder_size'])),
                 Text(info['closed_at_local'], style=row_style),
                 Text(info['closed_by_username'], style=row_style),

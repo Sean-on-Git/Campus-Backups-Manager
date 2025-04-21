@@ -113,6 +113,12 @@ def scan_directory_for_tickets(directory):
                 ticket_numbers.append(match.group())
     return ticket_numbers
 
+def find_matching_folder_name(directory, ticket_number):
+    for folder_name in os.listdir(directory):
+        if os.path.isdir(os.path.join(directory, folder_name)):
+            if ticket_number in folder_name:
+                return folder_name
+
 def move_to_deletion_folder(ticket_numbers):
     """
     Move folders containing the specified ticket numbers to the DELETION_LOCATION.
@@ -278,8 +284,10 @@ def fetch_ticket_info(instance, username, password, ticket_number):
             else:
                 debug_logger.debug(f"Skipping backup size info for ticket: {ticket_number}")
                 folder_size = 0
+
             return {
                 'ticket_number': ticket_number,
+                'folder_name': find_matching_folder_name(BACKUPS_LOCATION, ticket_number) or find_matching_folder_name(DELETION_LOCATION, ticket_number),
                 'sys_id': sys_id,
                 'closed_at_local': closed_at_local,
                 'closed_by_username': closed_by_username,
