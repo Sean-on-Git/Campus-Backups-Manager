@@ -97,7 +97,7 @@ else:
 def perm_remove_directory(folder_to_delete):
     folder_to_delete_path = os.path.join(DELETION_LOCATION, folder_to_delete)
     if os.path.exists(folder_to_delete_path):
-        if os.path.isdir(folder_to_delete_path)
+        if os.path.isdir(folder_to_delete_path):
             shutil.rmtree(folder_to_delete_path)
             debug_logger.debug(f'Removed directory: {folder_to_delete}')
         else:
