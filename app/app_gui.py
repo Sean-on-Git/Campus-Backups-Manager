@@ -6,9 +6,10 @@ from textual.reactive import reactive
 from textual.events import Key
 import webbrowser
 import asyncio
+import os
 from app.api_utils import (
     move_to_deletion_folder, scan_directory_for_tickets, fetch_ticket_info,
-    error_logger, debug_logger, adjust_path,
+    error_logger, debug_logger, adjust_path, perm_remove_directory,
     BACKUPS_LOCATION, INSTANCE, DELETION_LOCATION, APPLICATION_PATH
 )
 
@@ -58,8 +59,8 @@ class TicketApp(App):
         self.main_buttons = self.create_container(
             "main_buttons",
             [
-                Button("Move to Deletion", id="move_deletion"),
-                Button("Empty Delete Folder (DO NOT USE YET)", id="perm_delete")
+                Button("Move to Deletion Folder", id="move_deletion"),
+                Button("Empty Delete Folder", id="perm_delete")
             ]
         )
 
@@ -229,6 +230,10 @@ class TicketApp(App):
         self.hide('#' + self.main_container.id)
         self.show('#' + self.perm_delete_container.id)
 
+    def acutally_delete_files_press(self) -> None:
+        for folder in os.listdir(os.path.abspath(DELETION_LOCATION)):
+            perm_remove_directory(folder)
+
     async def on_button_pressed(self, event) -> None:
         """
         Handle button pressed events, including login, deletion confirmation, and cancellation.
@@ -249,6 +254,8 @@ class TicketApp(App):
         elif event.button.id == "back_to_main":
             self.show('#' + self.main_container.id)
             self.hide('#' + self.perm_delete_container.id)
+        elif event.button.id == "acutally_delete_files":
+            self.acutally_delete_files_press()
 
     async def fetch_ticket_info_task(self, instance, username, password, ticket_number) -> None:
         """
