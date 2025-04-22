@@ -81,6 +81,7 @@ class TicketApp(App):
                 self.main_buttons
             ]
         )
+        self.main_container.classes = "data_table"
         yield self.main_container
 
         self.perm_delete_container = self.create_container(
@@ -91,6 +92,7 @@ class TicketApp(App):
             ]
         )
         self.perm_delete_container.styles.display = "none"
+        self.perm_delete_container.classes = "data_table"
         yield self.perm_delete_container
         
         with Center(id="progress_container"):

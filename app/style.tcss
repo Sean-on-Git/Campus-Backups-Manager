@@ -15,8 +15,16 @@ VerticalScroll {
     padding: 2;
 }
 
-.bold {
-    text-style: bold;
+Center {
+    margin-top: 1;
+    margin-bottom: 1;
+    layout: horizontal;
+}
+
+Footer {
+    dock: bottom;
+    width: 100%;
+    height: auto;
 }
 
 Button {
@@ -24,20 +32,28 @@ Button {
     align: center middle;
 }
 
+.bold {
+    text-style: bold;
+}
+
 .button_container {
     align: center middle;
-    border: solid red;
-    width: 100%
+    width: 100%;
+}
+
+.data_table {
+    align: center top;
+    margin: 1;
+    max-width: 90vw;
+}
+
+#login_container {
+    width: 100%;
+    max-width: 60vw;
 }
 
 #progress_bar {
     display: block;
     align: center middle;
-    padding-left: 15
-}
-
-Center {
-    margin-top: 1;
-    margin-bottom: 1;
-    layout: horizontal;
+    padding-left: 15;
 }
