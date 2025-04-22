@@ -63,6 +63,7 @@ class TicketApp(App):
                 Button("Empty Delete Folder", id="perm_delete")
             ]
         )
+        self.main_buttons.classes = "button_container"
 
         self.perm_delete_options = self.create_container(
             "perm_delete_options",
@@ -71,6 +72,7 @@ class TicketApp(App):
                 Button("PERMANENTLY DELETE THESE FILES", id="acutally_delete_files")
             ]
         )
+        self.perm_delete_options.classes = "button_container"
 
         self.main_container = self.create_container(
             "main_container",
@@ -96,14 +98,17 @@ class TicketApp(App):
             yield ProgressBar(id="progress_bar", show_eta=False)
 
         self.scroll_center = Center()
-        self.scroll = VerticalScroll(self.scroll_center, id="delete_center_container")
+        self.scroll = VerticalScroll(id="delete_center_container")
 
         self.deletion_confirmation_text = Static("Are you sure ALL of these folders are ready to be moved to the 'MARKED FOR DELETION' folder?")
         self.deletion_container = Container(
             self. scroll,
             self.deletion_confirmation_text,
-            Button("No", id="no_deletion_button", variant="error"),
-            Button("Yes", id="yes_deletion_button", variant="success")
+            Container(
+                Button("No", id="no_deletion_button", variant="error"),
+                Button("Yes", id="yes_deletion_button", variant="success"),
+                classes="button_container"
+            )
         )
         self.deletion_container.id = "deletion_container"
         self.deletion_container.styles.display = "none" 
@@ -355,9 +360,9 @@ class TicketApp(App):
     def create_marked_for_delete_checklist(self, deletion_info_list) -> None:
         if not self.is_deletion_list_created:
             for info in deletion_info_list:
-                self.scroll_center.mount(
+                self.scroll.mount(
                     Checkbox(
-                        f"{info['ticket_number']} - {info['closed_at_local']} - {info['closed_by_username']}",
+                        f"Name: {info['folder_name']} | Closed: {info['closed_at_local']} | Closed by: {info['closed_by_username']}",
                         classes="deletion_queue",
                         id=f"checkbox_{info['ticket_number']}"
                     )

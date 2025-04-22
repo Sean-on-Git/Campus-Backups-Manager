@@ -1,5 +1,33 @@
+Screen {
+    align: center middle;
+}
+
+Container {
+    align: center middle;
+    width: auto;
+    height: auto;
+    padding: 0;
+}
+
+VerticalScroll {
+    width: auto;
+    height: auto;
+    padding: 2;
+}
+
 .bold {
     text-style: bold;
+}
+
+Button {
+    margin: 1;
+    align: center middle;
+}
+
+.button_container {
+    align: center middle;
+    border: solid red;
+    width: 100%
 }
 
 #progress_bar {
