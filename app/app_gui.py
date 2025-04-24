@@ -213,19 +213,22 @@ class TicketApp(App):
         self.show("#main_container")
         self.query_one("#data_table").focus()
 
-    async def no_delete_button_press(self) -> None:
+    async def no_move_delete_button_press(self) -> None:
         self.show("#main_container")
         self.hide("#deletion_container")
         self.query_one("#data_table").focus()
         # Remove checkboxes after exiting screen
         await self.scroll.remove_children('*')
 
-    async def yes_deletion_button_press(self) -> None:
+    async def yes_move_deletion_button_press(self) -> None:
         ticket_numbers = [ checkbox.id.split("_")[1] for checkbox in self.query('Checkbox') if checkbox.value ]
         
         debug_logger.debug(f"MOVE TO DELETION FOLDER: {ticket_numbers}")
 
         move_to_deletion_folder(ticket_numbers)
+
+        for ticket in ticket_numbers:
+            self.notify(message="Moved to 'Ready for Deletion' folder", title=f"{ticket}: Moved.")
         await self.load_tickets(INSTANCE, self.username, self.password, BACKUPS_LOCATION, self.main_table)
         self.show("#main_container")
         self.query_one("#data_table").focus()
@@ -236,7 +239,7 @@ class TicketApp(App):
     def move_deletion_press(self) -> None:
         self.show("#deletion_container")
         self.hide("#main_container")
-        self.show_deletion_confirmation()
+        self.show_move_deletion_confirmation()
 
     async def perm_delete_press(self) -> None:
         await self.load_tickets(INSTANCE, self.username, self.password, DELETION_LOCATION, self.perm_delete_table)
@@ -256,9 +259,13 @@ class TicketApp(App):
             is_deletion_complete = perm_remove_directory(folder)
 
             if is_deletion_complete:
-                self.notify(message="Selected files permanently deleted.", title="Done.", severity="information", timeout=5)
+                self.notify(message="Selected files permanently deleted.", title=f"{folder}: Done.", severity="information", timeout=15)
             else:
-                self.notify(message="Error during deletion process.", title="Failed.", severity="error", timeout=5)
+                self.notify(message="Error during deletion process.", title=f"{folder} Failed.", severity="error", timeout=15)
+
+        self.hide('#' + self.perm_delete_container.id)
+        self.hide('#progress_container')
+        self.show('#main_container')
 
     async def on_button_pressed(self, event) -> None:
         """
@@ -270,9 +277,9 @@ class TicketApp(App):
         if event.button.id == "login_button":
             await self.login_button_press()
         elif event.button.id == "no_deletion_button":
-            await self.no_delete_button_press()
+            await self.no_move_delete_button_press()
         elif event.button.id == "yes_deletion_button":
-            await self.yes_deletion_button_press()
+            await self.yes_move_deletion_button_press()
         elif event.button.id == "move_deletion":
             self.move_deletion_press()
         elif event.button.id == "perm_delete":
@@ -425,7 +432,7 @@ class TicketApp(App):
         url = selected_row['url']
         webbrowser.open(url)
 
-    def show_deletion_confirmation(self) -> None:
+    def show_move_deletion_confirmation(self) -> None:
         """
         Display the deletion confirmation container with the list of folders ready for deletion.
         """
