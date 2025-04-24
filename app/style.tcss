@@ -1,6 +1,8 @@
+/*
 Screen {
     align: center middle;
 }
+*/
 
 Container {
     align: center middle;
@@ -21,12 +23,6 @@ Center {
     layout: horizontal;
 }
 
-Footer {
-    dock: bottom;
-    width: 100%;
-    height: auto;
-}
-
 Button {
     margin: 1;
     align: center middle;
@@ -34,6 +30,12 @@ Button {
 
 .bold {
     text-style: bold;
+}
+
+.foot_info {
+    dock: bottom;
+    width: 100%;
+    height: auto;
 }
 
 .button_container {

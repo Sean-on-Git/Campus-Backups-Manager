@@ -116,13 +116,13 @@ class TicketApp(App):
         self.deletion_container.styles.display = "none" 
         yield self.deletion_container
      
-        login_error = Static("Incorrect Username or Password. Quit application and try again")
-        login_error.id = "login_error"
-        yield login_error
+        #login_error = Static("Incorrect Username or Password. Quit application and try again")
+        #login_error.id = "login_error"
+        #yield login_error
         
         self.title = 'HDCS Backup Management Utility'
 
-        bottom_row = Static("Ctrl+Q to quit | Enter to open ticket in browser | Tab and arrow keys to navigate", classes="bold")
+        bottom_row = Static("Ctrl+Q to quit | Enter to open ticket in browser | Tab and arrow keys to navigate", classes="bold foot_info")
         bottom_row.styles.text_align = "center"
 
         yield self.create_container("test", [bottom_row])
@@ -199,7 +199,7 @@ class TicketApp(App):
         self.hide("#main_container")
         self.hide("#progress_container")
         self.hide("#deletion_container")
-        self.hide("#login_error")
+        #self.hide("#login_error")
 
     async def login_button_press(self) -> None:
         self.hide("#login_container")
@@ -219,7 +219,7 @@ class TicketApp(App):
     async def yes_deletion_button_press(self) -> None:
         ticket_numbers = [ checkbox.id.split("_")[1] for checkbox in self.query('Checkbox') if checkbox.value ]
         
-        debug_logger.debug(f"MOVE TO DELETION: {ticket_numbers}")
+        debug_logger.debug(f"MOVE TO DELETION FOLDER: {ticket_numbers}")
 
         move_to_deletion_folder(ticket_numbers)
         await self.load_tickets(INSTANCE, self.username, self.password, BACKUPS_LOCATION, self.main_table)
@@ -228,8 +228,8 @@ class TicketApp(App):
         self.hide("#deletion_container")
 
     def move_deletion_press(self) -> None:
-        self.query_one("#deletion_container").styles.display = "block"
-        self.query_one("#main_container").styles.display = "none"
+        self.show("#deletion_container")
+        self.hide("#main_container")
         self.show_deletion_confirmation()
 
     async def perm_delete_press(self) -> None:
@@ -247,7 +247,12 @@ class TicketApp(App):
         deletion_folders = os.listdir(os.path.abspath(DELETION_LOCATION))
         for folder in deletion_folders:
             self.perm_removal_progress(folder, len(deletion_folders))
-            perm_remove_directory(folder)
+            is_deletion_complete = perm_remove_directory(folder)
+
+            if is_deletion_complete:
+                self.notify(message="Selected files permanently deleted.", title="Done.", severity="information", timeout=5)
+            else:
+                self.notify(message="Error during deletion process.", title="Failed.", severity="error", timeout=5)
 
     async def on_button_pressed(self, event) -> None:
         """
@@ -284,15 +289,22 @@ class TicketApp(App):
         try:
             ticket_info = await asyncio.to_thread(fetch_ticket_info, instance, username, password, ticket_number)
             if ticket_info:
+                debug_logger.debug(f"ticket_info is {ticket_info}")
                 self.ticket_info_list.append(ticket_info)
                 #self.call_later(self.update_progress)
                 self.update_progress(ticket_number)
+                return True
+            else:
+                return False
         except Exception as e:
-            self.show("#login_error")
+            #self.show("#login_error")
             self.hide("#main_container")
-            self.query_one("#login_error").styles.color = "red"
+            #self.query_one("#login_error").styles.color = "red"
+            self.hide("#progress_bar")
+            self.show("#login_container")
+            self.notify(message="Failed login.", title="Error", severity="error")
             error_logger.error(f"Error fetching ticket info: {e}")
-            exit()
+            return False
     
     def update_progress(self, ticket_number, label_text="Loaded") -> None:
         """
@@ -303,6 +315,13 @@ class TicketApp(App):
         label.update(f"{label_text} {ticket_number}...")
         label.recompose()
         progress.advance(1)
+
+    def reset_progress_bar(self, max):
+        self.show("#progress_container")
+        progress = self.query_one("#progress_bar")
+        progress.progress = 0
+        progress.recompose()
+        progress.total = max
 
     def perm_removal_progress(self, current, max):
         self.show("#progress_container")
@@ -326,17 +345,31 @@ class TicketApp(App):
         ticket_numbers = scan_directory_for_tickets(directory)
         self.ticket_info_list = []
         total_tickets = len(ticket_numbers)
-        self.show("#progress_container")
-        progress = self.query_one("#progress_bar")
-        progress.progress = 0
-        progress.recompose()
-        progress.total = total_tickets
+        
+        self.reset_progress_bar(total_tickets)
+
         tasks = []
-        for ticket_number in ticket_numbers:
-            task = asyncio.create_task(self.fetch_ticket_info_task(instance, username, password, ticket_number))
-            tasks.append(task)
-        await asyncio.gather(*tasks)
-        await self.populate_table(table)
+
+        try:
+            for ticket_number in ticket_numbers:
+                task = asyncio.create_task(self.fetch_ticket_info_task(instance, username, password, ticket_number))
+
+                tasks.append(task)
+            
+            await asyncio.gather(*tasks)
+
+            if all(list(map(lambda task: task.result(), tasks))):
+                await self.populate_table(table)
+            else:
+                self.hide("#main_container")
+                self.show("#login_container")
+                error_logger.error(f"Login error for user {username}")
+                self.notify(message="Failed login/authentication with Service-Now.", title="Error", severity="error")
+        except Exception as e:
+            self.hide("#main_container")
+            self.show("#login_container")
+            error_logger.error(f"Exception raised during login: {e}")
+            self.notify(message="Failed login/authentication with Service-Now.", title="Error", severity="error")
     
     async def populate_table(self, table) -> None:
         """
@@ -358,6 +391,7 @@ class TicketApp(App):
             )
         self.show('#' + table.id)
         self.hide("#progress_container")
+        self.notify(message="Ticket info loaded.", title="Done.", severity="information", timeout=5)
 
     def create_marked_for_delete_checklist(self, deletion_info_list) -> None:
         if not self.is_deletion_list_created:

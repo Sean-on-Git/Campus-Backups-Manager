@@ -94,16 +94,22 @@ else:
     error_logger.error("Error: unable to load configuration.\nA 'config.json' needs to be in the same directory as this app.")
     exit()
 
-def perm_remove_directory(folder_to_delete):
-    folder_to_delete_path = os.path.join(DELETION_LOCATION, folder_to_delete)
-    if os.path.exists(folder_to_delete_path):
-        if os.path.isdir(folder_to_delete_path):
-            shutil.rmtree(folder_to_delete_path)
-            debug_logger.debug(f'Removed directory: {folder_to_delete}')
+def perm_remove_directory(folder_to_delete) -> bool:
+    try:
+        folder_to_delete_path = os.path.join(DELETION_LOCATION, folder_to_delete)
+        if os.path.exists(folder_to_delete_path):
+            if os.path.isdir(folder_to_delete_path):
+                shutil.rmtree(folder_to_delete_path)
+                debug_logger.debug(f'Removed directory: {folder_to_delete}')
+                return True
+            else:
+                debug_logger.debug(f'Following is not a directory: {folder_to_delete_path}')
+                return False
         else:
-            debug_logger.debug(f'Following is not a directory: {folder_to_delete_path}')
-    else:
-        debug_logger.debug(f'Directory does not exist: {folder_to_delete}')
+            debug_logger.debug(f'Directory does not exist: {folder_to_delete}')
+            return False
+    except Exception as e:
+        return False
 
 def scan_directory_for_tickets(directory):
     """
