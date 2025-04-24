@@ -35,6 +35,20 @@ debug_logger.setLevel(logging.DEBUG)
 debug_logger.addHandler(debug_handler)
 debug_logger.debug("Logging setup completed.")
 
+# Logger for loggin which folders are moved
+today = datetime.now()
+today_formatted = today.strftime("%Y_%m_%d")
+ticket_log_handler = logging.FileHandler(f'deleted_backups_{today_formatted}.log')
+ticket_log_handler.setLevel(logging.INFO)
+ticket_log_formatter = logging.Formatter('%(asctime)s %(message)s')
+ticket_log_handler.setFormatter(ticket_log_formatter)
+
+# Adding debug handler to ticket logger
+ticket_logger = logging.getLogger()
+ticket_logger.setLevel(logging.INFO)
+ticket_logger.addHandler(ticket_log_handler)
+ticket_logger.debug("Ticket logging setup completed.")
+
 
 # Get the directory of the executable
 if getattr(sys, 'frozen', False):
@@ -101,6 +115,7 @@ def perm_remove_directory(folder_to_delete) -> bool:
             if os.path.isdir(folder_to_delete_path):
                 shutil.rmtree(folder_to_delete_path)
                 debug_logger.debug(f'Removed directory: {folder_to_delete}')
+                ticket_logger.info(f'Permanently deleted backed up folder: {folder_to_delete}')
                 return True
             else:
                 debug_logger.debug(f'Following is not a directory: {folder_to_delete_path}')

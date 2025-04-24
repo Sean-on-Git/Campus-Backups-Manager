@@ -33,6 +33,7 @@ Log files are stored in same directory as executable.
 Errors are written to "error.log"
 Debugging logs are written to "debug.log"
 Currently debugging is enabled by default with no flags to disable.
+Any folders deleted are placed in an INFO log called "deleted_backups_YYYY_MM_DD.log"
 
 ### Screenshots
 
