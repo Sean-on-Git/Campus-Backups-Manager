@@ -33,3 +33,11 @@ Log files are stored in same directory as executable.
 Errors are written to "error.log"
 Debugging logs are written to "debug.log"
 Currently debugging is enabled by default with no flags to disable.
+
+### Screenshots
+
+Login
+![screenshot-login](src/login.png)
+
+Main screen
+![screen-main-screen](src/deletion.png)

@@ -30,6 +30,7 @@ class TicketApp(App):
         yield Header()
         login_container = self.login_container()
         login_container.id = "login_container"
+        login_container.classes = "login_container"
         yield login_container
 
         self.main_table = self.create_table(
@@ -99,21 +100,22 @@ class TicketApp(App):
             yield Label("Loading Service Now API", id="progress_label")
             yield ProgressBar(id="progress_bar", show_eta=False)
 
-        self.scroll = VerticalScroll(id="delete_center_container")
+        self.move_to_deletion_folder_container_scroll = VerticalScroll(id="delete_center_container")
 
-        self.deletion_confirmation_text = Static("Are you sure ALL of these folders are ready to be moved to the 'MARKED FOR DELETION' folder?")
-        self.deletion_container = Container(
-            self. scroll,
-            self.deletion_confirmation_text,
+        self.move_to_deletion_folder_confirmation_text = Static("Are you sure ALL of these folders are ready to be moved to the 'MARKED FOR DELETION' folder?")
+        self.move_to_deletion_folder_confirmation_text.id = "deletion_confirmation_text"
+        self.move_to_deletion_folder_container = Container(
+            self.move_to_deletion_folder_container_scroll,
+            self.move_to_deletion_folder_confirmation_text,
             Container(
                 Button("No", id="no_deletion_button", variant="error"),
                 Button("Yes", id="yes_deletion_button", variant="success"),
                 classes="button_container"
             )
         )
-        self.deletion_container.id = "deletion_container"
-        self.deletion_container.styles.display = "none" 
-        yield self.deletion_container
+        self.move_to_deletion_folder_container.id = "move_to_deletion_folder_container"
+        self.move_to_deletion_folder_container.styles.display = "none" 
+        yield self.move_to_deletion_folder_container
      
         #login_error = Static("Incorrect Username or Password. Quit application and try again")
         #login_error.id = "login_error"
@@ -197,7 +199,7 @@ class TicketApp(App):
         self.show("#login_container")
         self.hide("#main_container")
         self.hide("#progress_container")
-        self.hide("#deletion_container")
+        self.hide("#move_to_deletion_folder_container")
         #self.hide("#login_error")
 
         # Set default theme for app
@@ -215,10 +217,10 @@ class TicketApp(App):
 
     async def no_move_delete_button_press(self) -> None:
         self.show("#main_container")
-        self.hide("#deletion_container")
+        self.hide("#move_to_deletion_folder_container")
         self.query_one("#data_table").focus()
         # Remove checkboxes after exiting screen
-        await self.scroll.remove_children('*')
+        await self.move_to_deletion_folder_container_scroll.remove_children('*')
 
     async def yes_move_deletion_button_press(self) -> None:
         ticket_numbers = [ checkbox.id.split("_")[1] for checkbox in self.query('Checkbox') if checkbox.value ]
@@ -232,12 +234,12 @@ class TicketApp(App):
         await self.load_tickets(INSTANCE, self.username, self.password, BACKUPS_LOCATION, self.main_table)
         self.show("#main_container")
         self.query_one("#data_table").focus()
-        self.hide("#deletion_container")
+        self.hide("#move_to_deletion_folder_container")
         # Remove checkboxes after exiting screen
-        await self.scroll.remove_children('*')
+        await self.move_to_deletion_folder_container_scroll.remove_children('*')
 
     def move_deletion_press(self) -> None:
-        self.show("#deletion_container")
+        self.show("#move_to_deletion_folder_container")
         self.hide("#main_container")
         self.show_move_deletion_confirmation()
 
@@ -408,11 +410,11 @@ class TicketApp(App):
 
     def create_marked_for_delete_checklist(self, deletion_info_list) -> None:
 
-        self.scroll.recompose()
+        self.move_to_deletion_folder_container_scroll.recompose()
 
         # Adds checkboxes to select which folders to delete
         for info in deletion_info_list:
-            self.scroll.mount(
+            self.move_to_deletion_folder_container_scroll.mount(
                 Checkbox(
                     f"Name: {info['folder_name']} | Closed: {info['closed_at_local']} | Closed by: {info['closed_by_username']}",
                     classes="deletion_queue",
@@ -434,14 +436,16 @@ class TicketApp(App):
 
     def show_move_deletion_confirmation(self) -> None:
         """
-        Display the deletion confirmation container with the list of folders ready for deletion.
+        Display the move to deletion folder confirmation container with the list of folders ready for deletion.
         """
         deletion_info_list = [info for info in self.ticket_info_list if info['ready_for_deletion']]
         
         if not deletion_info_list:
-            self.deletion_confirmation_text.update("No tickets are ready for deletion.")
+            self.move_to_deletion_folder_confirmation_text.update("No tickets are ready for deletion.")
+            self.move_to_deletion_folder_confirmation_text.recompose()
         else:
             self.create_marked_for_delete_checklist(deletion_info_list)
-            self.deletion_confirmation_text.update("Are you sure ALL of these folders are ready to be moved to the 'MARKED FOR DELETION' folder?")
+            self.move_to_deletion_folder_confirmation_text.update("Are you sure ALL of these folders are ready to be moved to the 'MARKED FOR DELETION' folder?")
+            self.move_to_deletion_folder_confirmation_text.recompose()
         self.hide("#main_container")
-        self.show('#' + self.scroll.id)
+        self.show('#' + self.move_to_deletion_folder_container_scroll.id)

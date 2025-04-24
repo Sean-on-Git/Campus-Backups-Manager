@@ -1,8 +1,6 @@
-/*
 Screen {
     align: center middle;
 }
-*/
 
 Container {
     align: center middle;
@@ -49,9 +47,19 @@ Button {
     max-width: 90vw;
 }
 
-#login_container {
+.login_container {
     width: 100%;
     max-width: 60vw;
+    align: center middle;
+}
+
+#move_to_deletion_folder_container{
+    min-width: 50vw;
+    align: center middle;
+}
+
+#move_to_deletion_folder_confirmation_text {
+    align: center middle;
 }
 
 #progress_bar {
