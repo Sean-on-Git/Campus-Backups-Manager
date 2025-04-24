@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import re
 import requests
@@ -34,6 +35,30 @@ debug_logger.setLevel(logging.DEBUG)
 debug_logger.addHandler(debug_handler)
 debug_logger.debug("Logging setup completed.")
 
+# Logger for loggin which folders are moved
+today = datetime.now()
+today_formatted = today.strftime("%Y_%m_%d")
+ticket_log_handler = logging.FileHandler(f'deleted_backups_{today_formatted}.log')
+ticket_log_handler.setLevel(logging.INFO)
+ticket_log_formatter = logging.Formatter('%(asctime)s %(message)s')
+ticket_log_handler.setFormatter(ticket_log_formatter)
+
+# Adding debug handler to ticket logger
+ticket_logger = logging.getLogger()
+ticket_logger.setLevel(logging.INFO)
+ticket_logger.addHandler(ticket_log_handler)
+ticket_logger.debug("Ticket logging setup completed.")
+
+
+# Get the directory of the executable
+if getattr(sys, 'frozen', False):
+     # If the application is frozen (i.e., packaged with PyInstaller)
+    APPLICATION_PATH = os.path.dirname(sys.executable)
+else:
+    # If the application is not frozen
+    APPLICATION_PATH = os.path.dirname(__file__)
+debug_logger.debug(f"Application path is reported as: {APPLICATION_PATH}")
+
 def adjust_path(path):
     """
     Adjusts slashes to the appropriate type for the current OS
@@ -42,7 +67,7 @@ def adjust_path(path):
         path (str): A filesystem path. Ex: '/home/user/Documents', 'C:\\Users\\me\\Documents'
 
     Returns:
-        str: With appropriate slashes. Ex: "../MyBackups/here" -> "..\\MyBackups\\her"
+        str: With appropriate slashes. Ex: "../MyBackups/here" -> "..\\MyBackups\\here"
     """
     if platform.system() == "Windows":
         return path.replace("/", "\\")
@@ -57,7 +82,7 @@ def load_config():
         dict: Configuration dictionary if the file is found and valid, otherwise None.
     """
     try:
-        with open('config.json') as f:
+        with open(adjust_path(APPLICATION_PATH + '/config.json')) as f:
             config = json.load(f)
         return config
     except FileNotFoundError:
@@ -71,12 +96,35 @@ config = load_config()
 
 if config:
     INSTANCE = config['instance']
-    BACKUPS_LOCATION = config['backups_location']
-    DELETION_LOCATION = config['deletion_location']
+    BACKUPS_LOCATION = adjust_path(config['backups_location'])
+    DELETION_LOCATION = adjust_path(config['deletion_location'])
+
+    # Optionally toggle on grabbing size info for ticket
+    if not config['get_size']:
+        GET_SIZE_BOOL = config['get_size']
+    else:
+        GET_SIZE_BOOL = False
 else:
     error_logger.error("Error: unable to load configuration.\nA 'config.json' needs to be in the same directory as this app.")
     exit()
-    # you can exit the program here or handle it in some other way
+
+def perm_remove_directory(folder_to_delete) -> bool:
+    try:
+        folder_to_delete_path = os.path.join(DELETION_LOCATION, folder_to_delete)
+        if os.path.exists(folder_to_delete_path):
+            if os.path.isdir(folder_to_delete_path):
+                shutil.rmtree(folder_to_delete_path)
+                debug_logger.debug(f'Removed directory: {folder_to_delete}')
+                ticket_logger.info(f'Permanently deleted backed up folder: {folder_to_delete}')
+                return True
+            else:
+                debug_logger.debug(f'Following is not a directory: {folder_to_delete_path}')
+                return False
+        else:
+            debug_logger.debug(f'Directory does not exist: {folder_to_delete}')
+            return False
+    except Exception as e:
+        return False
 
 def scan_directory_for_tickets(directory):
     """
@@ -96,6 +144,12 @@ def scan_directory_for_tickets(directory):
             if match:
                 ticket_numbers.append(match.group())
     return ticket_numbers
+
+def find_matching_folder_name(directory, ticket_number):
+    for folder_name in os.listdir(directory):
+        if os.path.isdir(os.path.join(directory, folder_name)):
+            if ticket_number in folder_name:
+                return folder_name
 
 def move_to_deletion_folder(ticket_numbers):
     """
@@ -177,7 +231,7 @@ def find_matching_folders(backups_location, ticket_number) -> str:
     # Filter folders that contain the search pattern
     matching_folders = [folder for folder in all_folders if ticket_number in folder]
 
-    error_logger.error(f"MATCHING FOLDERS: {matching_folders}")
+    debug_logger.debug(f"MATCHING FOLDERS: {matching_folders}")
 
     return matching_folders[0]
 
@@ -230,20 +284,28 @@ def fetch_ticket_info(instance, username, password, ticket_number):
     Returns:
         dict: Dictionary containing the ticket information.
     """
-    print(f"Loading data for ticket: {ticket_number}")
+    debug_logger.debug(f"Loading data for ticket: {ticket_number}")
     url_item = f"https://{instance}/api/now/table/sc_req_item?sysparm_query=number={ticket_number}"
     response_item = requests.get(url_item, auth=(username, password))
     if response_item.status_code == 200:
         data_item = response_item.json()
+
+        # Confirm there is a result here
         if data_item['result']:
             item = data_item['result'][0]
             sys_id = item['sys_id']
             closed_at_utc = item.get('closed_at', 'N/A')
+
+            # Find out if ticket is tagged with "Ready for Pickup" in Service-Now
             has_ready_for_pickup_tag = fetch_label_info(instance, username, password, ticket_number)
+
+            # If ticket is closed, get the Service-Now UserID of who closed it
             if item.get('active') == "false":
                 closed_by_id = item.get('closed_by', {}).get('value', 'N/A')
             else:
                 closed_by_id = 'N/A'
+
+            # If ticket closed, then convert the "Closed at" time stamp to local time
             if closed_at_utc != 'N/A' and closed_at_utc != '':
                 utc_time = datetime.strptime(closed_at_utc, '%Y-%m-%d %H:%M:%S')
                 local_tz = pytz.timezone('America/New_York')
@@ -253,10 +315,22 @@ def fetch_ticket_info(instance, username, password, ticket_number):
             else:
                 closed_at_local = 'N/A'
                 ready_for_deletion = False
+
+            # Call Service-Now API to fetch username associated with closed_by_id
             closed_by_username = fetch_username_info(instance, username, password, closed_by_id)
-            folder_size = human_readable_size(get_folder_size(os.path.join(BACKUPS_LOCATION, find_matching_folders(BACKUPS_LOCATION, ticket_number))))
+            
+            # Determine if we need to check file size
+            if GET_SIZE_BOOL == True:
+                debug_logger.debug(f"Getting backup size info for ticket: {ticket_number}")
+                folder_size = human_readable_size(get_folder_size(os.path.join(BACKUPS_LOCATION, find_matching_folders(BACKUPS_LOCATION, ticket_number))))
+            else:
+                debug_logger.debug(f"Skipping backup size info for ticket: {ticket_number}")
+                folder_size = 0
+
+            # Returns JSON object to be entered as row data for DataTable in app_gui.py
             return {
                 'ticket_number': ticket_number,
+                'folder_name': find_matching_folder_name(BACKUPS_LOCATION, ticket_number) or find_matching_folder_name(DELETION_LOCATION, ticket_number),
                 'sys_id': sys_id,
                 'closed_at_local': closed_at_local,
                 'closed_by_username': closed_by_username,

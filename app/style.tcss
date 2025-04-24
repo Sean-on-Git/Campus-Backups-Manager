@@ -1,15 +1,69 @@
-.bold {
-    text-style: bold;
+Screen {
+    align: center middle;
 }
 
-#progress_bar {
-    display: block;
+Container {
     align: center middle;
-    padding-left: 15
+    width: auto;
+    height: auto;
+    padding: 0;
+}
+
+VerticalScroll {
+    width: auto;
+    height: auto;
+    padding: 2;
 }
 
 Center {
     margin-top: 1;
     margin-bottom: 1;
     layout: horizontal;
+}
+
+Button {
+    margin: 1;
+    align: center middle;
+}
+
+.bold {
+    text-style: bold;
+}
+
+.foot_info {
+    dock: bottom;
+    width: 100%;
+    height: auto;
+}
+
+.button_container {
+    align: center middle;
+    width: 100%;
+}
+
+.data_table {
+    align: center top;
+    margin: 1;
+    max-width: 90vw;
+}
+
+.login_container {
+    width: 100%;
+    max-width: 60vw;
+    align: center middle;
+}
+
+#move_to_deletion_folder_container{
+    min-width: 50vw;
+    align: center middle;
+}
+
+#move_to_deletion_folder_confirmation_text {
+    align: center middle;
+}
+
+#progress_bar {
+    display: block;
+    align: center middle;
+    padding-left: 15;
 }
