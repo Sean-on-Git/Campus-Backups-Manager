@@ -99,7 +99,6 @@ class TicketApp(App):
             yield Label("Loading Service Now API", id="progress_label")
             yield ProgressBar(id="progress_bar", show_eta=False)
 
-        self.scroll_center = Center()
         self.scroll = VerticalScroll(id="delete_center_container")
 
         self.deletion_confirmation_text = Static("Are you sure ALL of these folders are ready to be moved to the 'MARKED FOR DELETION' folder?")
@@ -201,6 +200,9 @@ class TicketApp(App):
         self.hide("#deletion_container")
         #self.hide("#login_error")
 
+        # Set default theme for app
+        self.theme = "monokai"
+
     async def login_button_press(self) -> None:
         self.hide("#login_container")
         self.hide("#main_container")
@@ -211,10 +213,12 @@ class TicketApp(App):
         self.show("#main_container")
         self.query_one("#data_table").focus()
 
-    def no_delete_button_press(self) -> None:
+    async def no_delete_button_press(self) -> None:
         self.show("#main_container")
         self.hide("#deletion_container")
         self.query_one("#data_table").focus()
+        # Remove checkboxes after exiting screen
+        await self.scroll.remove_children('*')
 
     async def yes_deletion_button_press(self) -> None:
         ticket_numbers = [ checkbox.id.split("_")[1] for checkbox in self.query('Checkbox') if checkbox.value ]
@@ -226,6 +230,8 @@ class TicketApp(App):
         self.show("#main_container")
         self.query_one("#data_table").focus()
         self.hide("#deletion_container")
+        # Remove checkboxes after exiting screen
+        await self.scroll.remove_children('*')
 
     def move_deletion_press(self) -> None:
         self.show("#deletion_container")
@@ -264,7 +270,7 @@ class TicketApp(App):
         if event.button.id == "login_button":
             await self.login_button_press()
         elif event.button.id == "no_deletion_button":
-            self.no_delete_button_press()
+            await self.no_delete_button_press()
         elif event.button.id == "yes_deletion_button":
             await self.yes_deletion_button_press()
         elif event.button.id == "move_deletion":
@@ -394,16 +400,18 @@ class TicketApp(App):
         self.notify(message="Ticket info loaded.", title="Done.", severity="information", timeout=5)
 
     def create_marked_for_delete_checklist(self, deletion_info_list) -> None:
-        if not self.is_deletion_list_created:
-            for info in deletion_info_list:
-                self.scroll.mount(
-                    Checkbox(
-                        f"Name: {info['folder_name']} | Closed: {info['closed_at_local']} | Closed by: {info['closed_by_username']}",
-                        classes="deletion_queue",
-                        id=f"checkbox_{info['ticket_number']}"
-                    )
+
+        self.scroll.recompose()
+
+        # Adds checkboxes to select which folders to delete
+        for info in deletion_info_list:
+            self.scroll.mount(
+                Checkbox(
+                    f"Name: {info['folder_name']} | Closed: {info['closed_at_local']} | Closed by: {info['closed_by_username']}",
+                    classes="deletion_queue",
+                    id=f"checkbox_{info['ticket_number']}"
                 )
-            self.is_deletion_list_created = True
+            )
 
     async def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """
@@ -429,4 +437,4 @@ class TicketApp(App):
             self.create_marked_for_delete_checklist(deletion_info_list)
             self.deletion_confirmation_text.update("Are you sure ALL of these folders are ready to be moved to the 'MARKED FOR DELETION' folder?")
         self.hide("#main_container")
-        self.deletion_container.styles.display = "block"
+        self.show('#' + self.scroll.id)
